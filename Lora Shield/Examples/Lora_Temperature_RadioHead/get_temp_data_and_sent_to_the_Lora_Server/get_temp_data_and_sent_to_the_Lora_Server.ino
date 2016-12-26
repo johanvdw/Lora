@@ -1,3 +1,7 @@
+#include <Adafruit_BME280.h>
+
+
+
 /*
   get temp data and sent to the Lora Server
 
@@ -18,25 +22,16 @@
 
 */
 //Include required lib so Arduino can communicate with the temperature sensorDS18B20
-#include <OneWire.h>
-#include <DallasTemperature.h>
 // Singleton instance of the radio driver
 #include <SPI.h>
 #include <RH_RF95.h>
 RH_RF95 rf95;
+Adafruit_BME280 bme; // I2C
 
-// Data wire is plugged into port 3 on the Arduino
-#define ONE_WIRE_BUS 3
-
-// Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
-OneWire oneWire(ONE_WIRE_BUS);
-
-// Pass our oneWire reference to Dallas Temperature. 
-DallasTemperature sensors(&oneWire);
 float data;
 String datastring="";
-char databuf[10];
-uint8_t dataoutgoing[10];
+char databuf[35];
+uint8_t dataoutgoing[35];
 void setup() 
 {
   Serial.begin(9600);
@@ -44,18 +39,26 @@ void setup()
     Serial.println("init failed");
    // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
    // Need to change to 868.0Mhz in RH_RF95.cpp 
-   sensors.begin();
+
+  if (!bme.begin()) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring!");
+    while (1);
+  }
+
 }
 
 void loop()
 {
   // Print Sending to rf95_server
   Serial.println("Sending to rf95_server");
-  
-  // Get the temperature and send the message to rf95_server
-  sensors.requestTemperatures();
-  data = sensors.getTempCByIndex(0);
-  datastring +=dtostrf(data, 4, 2, databuf);
+  data = bme.readTemperature();
+  datastring = bme.readTemperature();
+  datastring +="°C;";
+  datastring +=bme.readPressure();
+  datastring +=" bar;";
+    datastring +=bme.readHumidity();
+    datastring +=" hum";
+  datastring.toCharArray(databuf, 35);
   strcpy((char *)dataoutgoing,databuf);
   Serial.println(databuf);
   rf95.send(dataoutgoing, sizeof(dataoutgoing));
