@@ -49,10 +49,18 @@ void setup()
   //while(!Serial);  // wait for Serial port to connect.
   //Serial.println("Log remote sensor data to USB flash\n");
 
+
+
   if (!rf95.init())
     Serial.println("init failed");  
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
   // Need to change to 868.0Mhz in RH_RF95.cpp 
+    RH_RF95::ModemConfig modem_config = {
+  0x78, // Reg 0x1D: BW=125kHz, Coding=4/8, Header=explicit
+  0xc4, // Reg 0x1E: Spread=4096chips/symbol, CRC=enable
+  0x0c  // Reg 0x26: LowDataRate=On, Agc=On
+};
+rf95.setModemRegisters(&modem_config);
 }
 
 void loop()
